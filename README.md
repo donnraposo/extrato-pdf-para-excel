@@ -1,50 +1,133 @@
 # Extrato Parser
 
-Aplicação local para Windows que converte extratos bancários em PDF textual para Excel.
+Aplicação desktop local para Windows que converte extratos bancários em PDF textual para Excel. Todo o processamento ocorre no computador do usuário, sem envio de dados bancários para serviços externos.
 
-## Estado da primeira versão
+## Funcionalidades
 
-- lê todas as páginas de um PDF com texto selecionável;
-- usa a posição visual das palavras para reconstruir colunas;
-- reconhece Data, Descrição, Nº Documento, Crédito, Débito e Saldo;
-- preserva `Crédito (R$)` e `Débito (R$)` em colunas separadas;
-- também calcula `Movimento (R$)`: crédito positivo e débito negativo;
-- cria as abas `Lançamentos`, `Conferência` e `Metadados`;
-- possui detecção inicial do formato demonstrado do Santander;
-- reconhece o formato Itaú com `Entradas`, `Saídas` e `Saldo`;
-- adapta as colunas do Excel ao esquema reconhecido: o Itaú, por exemplo, não recebe `Nº Documento`;
-- não usa internet nem envia o extrato a serviços externos.
+- processa PDFs com uma ou várias páginas;
+- extrai texto e coordenadas com `pdfplumber`;
+- reconhece automaticamente o layout bancário;
+- interpreta datas, documentos, históricos, valores e saldos;
+- preserva descrições que ocupam várias linhas;
+- gera Excel com as abas `Lançamentos`, `Conferência` e `Metadados`;
+- mantém página e texto de origem para auditoria;
+- sinaliza dados ambíguos para conferência;
+- grava valores financeiros como números quando o layout permitir;
+- funciona offline.
 
-Layouts bancários desconhecidos podem exigir ajustes. O sistema preserva ambiguidades na aba de conferência.
+## Bancos e esquemas reconhecidos
 
-## Esquemas atualmente reconhecidos
+### Santander
 
-- **Santander:** Data, Descrição, Nº Documento, Crédito, Débito, Movimento e Saldo;
-- **Itaú:** Data, Descrição, Entradas, Saídas, Movimento e Saldo.
+`Data | Descrição | Nº Documento | Crédito | Débito | Movimento | Saldo`
 
-O campo `Movimento (R$)` é calculado pelo sistema: entradas/créditos são positivos e saídas/débitos são negativos. Outros nomes equivalentes são normalizados pelo detector de cabeçalhos. Layouts ainda desconhecidos podem precisar de um adaptador e uma amostra anonimizada.
+- Crédito e Débito são positivos em suas colunas;
+- Movimento representa crédito positivo e débito negativo;
+- detalhes em múltiplas linhas são incorporados ao lançamento.
 
-## Como abrir
+### Itaú
 
-No Windows, dê dois cliques em `ABRIR_EXTRATO_PARSER.bat`. Na tela:
+`Data | Descrição | Entradas | Saídas | Movimento | Saldo`
 
-1. clique em **Selecionar PDF**;
-2. confirme o destino do Excel;
-3. clique em **Gerar Excel**;
-4. revise a aba `Conferência` ao final.
+- não cria a coluna Nº Documento quando ela não existe no extrato;
+- Entradas são positivas;
+- Saídas são positivas na coluna própria e negativas em Movimento.
 
-## Desenvolvimento e testes
+### Banco Inter
+
+`Data | Descrição | Crédito | Débito | Movimento | Saldo por transação`
+
+- reconhece datas por extenso compartilhadas por vários lançamentos;
+- interpreta `R$` como crédito e `-R$` como débito;
+- associa o saldo apresentado a cada transação;
+- ignora resumos e rodapés de atendimento.
+
+### Caixa
+
+`Data | Data Efetiva | Documento | Histórico | Valor | Saldo`
+
+- Data Efetiva inclui data e horário, como `03/01/2026 03:43`;
+- Valor é numérico: créditos positivos e débitos negativos;
+- Saldo preserva o indicador do PDF no mesmo campo, como `531,74 C` ou `255,00 D`;
+- linhas `SALDO DIA` aparecem na ordem original com Valor vazio;
+- cabeçalhos repetidos e artefatos como `about:blank n/m` são ignorados;
+- lançamentos fora do período declarado são preservados e enviados para conferência.
+
+## Como usar
+
+No Windows:
+
+1. feche qualquer instância antiga da aplicação após uma atualização;
+2. dê dois cliques em `ABRIR_EXTRATO_PARSER.bat`;
+3. clique em **Selecionar PDF**;
+4. escolha o destino do arquivo Excel;
+5. clique em **Gerar Excel**;
+6. revise a aba `Conferência`.
+
+## Arquitetura
+
+O projeto utiliza Clean Architecture e princípios SOLID:
+
+- `application`: portas e caso de uso de conversão;
+- `domain`: entidades independentes de PDF, Excel e interface;
+- `infrastructure`: implementações com `pdfplumber` e `openpyxl`;
+- `layouts`: detector, registro e classes especializadas por banco;
+- uma classe pública por arquivo;
+- novos bancos são adicionados pelo registro de layouts, sem alterar o caso de uso;
+- fachadas mantêm compatibilidade com os pontos de entrada existentes.
+
+```text
+Interface
+   ↓
+ConvertStatement
+   ├── StatementReader      ← PdfPlumberStatementReader
+   ├── StatementInterpreter ← LayoutStatementInterpreter
+   └── StatementExporter    ← OpenpyxlStatementExporter
+```
+
+A documentação completa está em [`DOCS`](DOCS/), começando por:
+
+- [`01_VISAO_DO_PROJETO.md`](DOCS/01_VISAO_DO_PROJETO.md);
+- [`03_ARQUITETURA_SISTEMA.md`](DOCS/03_ARQUITETURA_SISTEMA.md);
+- [`08_DECISOES_ARQUITETURA.md`](DOCS/08_DECISOES_ARQUITETURA.md);
+- [`MASTER_PROJECT_PROTOCOL.md`](DOCS/MASTER_PROJECT_PROTOCOL.md).
+
+## Desenvolvimento
+
+Requisitos:
+
+- Python 3.12 ou compatível;
+- dependências definidas em `pyproject.toml`.
+
+Executar os testes:
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest
+```
+
+Executar a aplicação em desenvolvimento:
+
+```powershell
 .\.venv\Scripts\python.exe -m extrato_parser.app
 ```
 
-Para o segundo comando, instale o projeto em modo de desenvolvimento ou defina `PYTHONPATH=src`. O inicializador já configura o caminho do código automaticamente.
+O inicializador `run_app.pyw` configura o caminho de `src` para a abertura pelo arquivo `.bat`.
+
+## Estado dos testes
+
+A suíte atual possui 11 testes automatizados cobrindo:
+
+- normalização de datas e moeda;
+- agrupamento e sinais;
+- exportação para Excel;
+- Santander, Itaú, Inter e Caixa;
+- Data Efetiva da Caixa;
+- Valor assinado, saldo textual com `C/D` e `SALDO DIA`.
 
 ## Limitações
 
-- PDFs escaneados ainda não são suportados;
-- PDF protegido ou com codificação textual defeituosa pode não ser interpretado;
-- campos adicionais dependem de cabeçalhos reconhecíveis; a infraestrutura está preparada, mas a ampliação do detector será incremental por amostras reais;
-- antes do uso contábil, compare o resultado com o PDF e verifique a aba `Conferência`.
+- PDFs compostos apenas por imagem ainda não possuem OCR;
+- PDFs protegidos ou com codificação textual defeituosa podem não ser interpretados;
+- mudanças de layout do banco podem exigir atualização do adaptador;
+- PDFs reais com dados sensíveis não devem ser adicionados ao repositório sem anonimização;
+- antes do uso contábil, compare o Excel com o PDF e verifique a aba `Conferência`.
