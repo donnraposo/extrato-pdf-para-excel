@@ -4,7 +4,7 @@
 
 Criar uma aplicação local para Windows que permita selecionar um único extrato bancário em PDF, processar todas as suas páginas e gerar um único arquivo Excel com os lançamentos identificados.
 
-O sistema deve reconhecer automaticamente os campos disponíveis no documento. Cinco campos terão representação padronizada e aparecerão primeiro no Excel:
+O sistema reconhece automaticamente o layout bancário e os campos disponíveis. O modelo financeiro interno possui sete campos normalizados:
 
 1. Data;
 2. Descrição;
@@ -14,7 +14,16 @@ O sistema deve reconhecer automaticamente os campos disponíveis no documento. C
 6. Movimento (R$);
 7. Saldo (R$).
 
-Campos adicionais encontrados no extrato serão preservados como novas colunas ao final. Portanto, arquivos Excel gerados a partir de bancos diferentes poderão possuir esquemas diferentes.
+O Excel utiliza esquema dinâmico por layout. Campos ausentes não são inventados e campos específicos podem ser preservados. Portanto, arquivos gerados para bancos diferentes podem possuir colunas diferentes.
+
+## Layouts suportados
+
+- **Santander:** Data, Descrição, Nº Documento, Crédito, Débito, Movimento e Saldo.
+- **Itaú:** Data, Descrição, Entradas, Saídas, Movimento e Saldo.
+- **Inter:** Data, Descrição, Crédito, Débito, Movimento e Saldo por transação.
+- **Caixa:** Data, Data Efetiva, Documento, Histórico, Valor e Saldo.
+
+O layout Caixa preserva `Valor` como número assinado, exporta `Data Efetiva` com data e hora e mantém o saldo como texto fiel ao documento, por exemplo `531,74 C`. Linhas `SALDO DIA` são mantidas na mesma aba e ordem dos lançamentos, com Valor vazio.
 
 ## Problema resolvido
 
@@ -68,6 +77,9 @@ Registros ambíguos ou incompletos são preservados em uma aba de conferência, 
 - RF14: gerar abas `Lançamentos`, `Conferência` e `Metadados`;
 - RF15: informar conclusão, quantidade de registros e alertas;
 - RF16: permitir evolução por regras específicas de banco sem reescrever o núcleo.
+- RF17: detectar Santander, Itaú, Inter e Caixa por assinatura de layout;
+- RF18: no layout Caixa, preservar Data Efetiva, Valor assinado, saldo com indicador `C/D` e linhas `SALDO DIA`;
+- RF19: selecionar adaptadores por registro extensível, sem condicionais bancárias no caso de uso.
 
 ## Requisitos não funcionais
 
@@ -88,9 +100,12 @@ Registros ambíguos ou incompletos são preservados em uma aba de conferência, 
 - RB03: `-`, ausência ou marcador equivalente no documento torna o campo vazio;
 - RB04: saldo é preenchido somente quando houver associação confiável àquele lançamento;
 - RB05: todas as páginas pertencem ao mesmo arquivo Excel de saída;
-- RB06: campos extras são adicionados depois dos cinco campos comuns;
+- RB06: campos extras são adicionados conforme o esquema do layout detectado;
 - RB07: o conteúdo original nunca é descartado silenciosamente quando houver dúvida;
 - RB08: resumo, saldo inicial/final, cabeçalho e rodapé não são lançamentos, mas podem compor metadados.
+- RB09: `SALDO DIA` da Caixa é uma linha informativa na aba `Lançamentos`, sem Valor;
+- RB10: saldo da Caixa preserva o texto numérico e a letra `C` ou `D`, sem conversão de sinal;
+- RB11: Data Efetiva da Caixa é exportada como data/hora real no formato `dd/mm/aaaa hh:mm`.
 
 ## Observações da amostra Santander
 
@@ -115,11 +130,12 @@ Registros ambíguos ou incompletos são preservados em uma aba de conferência, 
 
 - aplicação abre e permite selecionar um PDF válido;
 - todas as páginas são consideradas;
-- o Excel contém os cinco campos comuns e os campos extras detectados;
+- o Excel contém o esquema definido pelo layout reconhecido;
 - débitos e créditos recebem sinal correto;
 - linhas não confiáveis são sinalizadas, não descartadas;
 - a amostra Santander atinge os critérios de qualidade definidos no plano de testes;
 - um novo layout pode ser suportado adicionando configuração ou adaptador isolado.
+- os layouts Inter e Caixa reproduzem integralmente os gabaritos aprovados.
 
 ## Perguntas pendentes
 

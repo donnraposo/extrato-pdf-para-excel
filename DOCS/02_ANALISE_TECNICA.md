@@ -13,7 +13,20 @@ Usar uma arquitetura híbrida, local e determinística:
 7. validar datas, valores, sinais e saldos;
 8. exportar o resultado e as incertezas para Excel.
 
-O reconhecimento genérico atende layouts bem estruturados. Adaptadores específicos aumentam a precisão de bancos já conhecidos.
+O reconhecimento genérico atende layouts bem estruturados. Adaptadores determinísticos específicos aumentam a precisão dos layouts conhecidos. A implementação combina leitura espacial e interpretação textual quando a codificação interna do PDF exigir.
+
+## Arquitetura implementada
+
+A aplicação adota Clean Architecture e princípios SOLID:
+
+- entidades não dependem de PDF, Excel ou interface;
+- o caso de uso depende de contratos de leitura, interpretação e exportação;
+- `pdfplumber` e `openpyxl` ficam na infraestrutura;
+- layouts implementam um contrato comum e são selecionados por detector e registro;
+- cada classe pública ocupa um arquivo próprio;
+- fachadas preservam compatibilidade com os pontos de entrada anteriores.
+
+Fluxo de dependências: `presentation -> application -> ports/domain`, enquanto infraestrutura e layouts implementam os contratos da aplicação.
 
 ## Tecnologias possíveis
 
@@ -86,7 +99,7 @@ Decisão: estruturas tipadas internas e openpyxl; pandas somente se surgir neces
 
 | Abordagem | Precisão em layout conhecido | Generalização | Manutenção | Decisão |
 |---|---:|---:|---:|---|
-| Texto linear + regex | Média | Baixa | Baixa inicialmente | Insuficiente |
+| Texto linear + regex | Média | Baixa | Baixa inicialmente | Complemento em adaptadores conhecidos |
 | Extração espacial genérica | Boa | Boa | Média | Base do sistema |
 | Regra fixa por banco | Muito boa | Baixa | Alta com muitos bancos | Adaptador opcional |
 | IA/serviço externo | Variável | Potencialmente alta | Custo e privacidade | Fora do escopo inicial |
@@ -153,3 +166,5 @@ As versões exatas serão fixadas apenas na implementação, após teste de comp
 ## Escalabilidade
 
 O foco é um usuário e um arquivo por execução. A arquitetura permite adicionar novos bancos por configuração/adaptador. Processamento em lote, OCR e paralelismo permanecem extensões futuras, sem necessidade de alterar o modelo central.
+
+O registro atual contém Inter, Caixa, Itaú, Santander e fallback genérico, nessa ordem de especificidade. Um novo banco deve implementar o contrato de layout e ser registrado sem alterar o caso de uso.

@@ -2,6 +2,14 @@
 
 Este roadmap só poderá ser executado após aprovação explícita da arquitetura completa.
 
+## Estado em 20/07/2026
+
+- Sprints 01 a 08: implementadas para o escopo atual.
+- Layouts validados: Santander, Itaú, Inter e Caixa.
+- Clean Architecture/SOLID: estrutura-base implementada com portas, caso de uso, domínio, infraestrutura e registro de layouts.
+- Testes automatizados atuais: 11 aprovados.
+- Sprint 09: pendente; não há executável empacotado aprovado.
+
 ## Sprint 01 — Fundação e modelos
 
 **Objetivo:** preparar projeto, modelos de domínio, configuração e qualidade básica.
@@ -81,6 +89,16 @@ Este roadmap só poderá ser executado após aprovação explícita da arquitetu
 **Dependências:** amostra anonimizada de outro banco e Excel esperado.
 
 **Resultado esperado:** campos extras dinâmicos e fallback genérico comprovados.
+
+**Estado:** concluída com Itaú, Inter e Caixa. O PDF real da Caixa foi validado com 75 movimentos e 20 linhas `SALDO DIA`; o PDF Inter validado contém 14 movimentos.
+
+## Sprint 08.1 — Refatoração arquitetural
+
+**Objetivo:** aplicar SOLID, Clean Architecture e uma classe por arquivo.
+
+**Resultado:** entidades, portas, caso de uso, infraestrutura, detector, registro e classes de layout separados; fachadas mantidas para compatibilidade.
+
+**Próximo débito técnico:** continuar reduzindo funções legadas concentradas nas fachadas sem mudar o comportamento homologado.
 
 ## Sprint 09 — Distribuição
 

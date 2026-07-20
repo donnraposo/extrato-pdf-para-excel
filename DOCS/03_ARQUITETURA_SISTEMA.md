@@ -2,29 +2,30 @@
 
 ## Visão geral
 
-A aplicação será desktop, local e dividida em camadas. A interface apenas coleta caminhos e apresenta progresso. O motor executa extração, reconhecimento, normalização e validação sem depender da interface.
+A aplicação é desktop, local e dividida segundo Clean Architecture. A interface coleta caminhos e apresenta o resultado. O caso de uso orquestra contratos e não depende diretamente de `pdfplumber`, `openpyxl` ou regras bancárias.
 
 ```text
 Usuário
    |
 Interface desktop (seleção e progresso)
    |
-Orquestrador de processamento
+Caso de uso ConvertStatement
    |
-   +--> Leitor de PDF --> páginas, palavras e coordenadas
+   +--> StatementReader <-- PdfPlumberStatementReader
    |
-   +--> Detector de layout --> tabelas, cabeçalhos e faixas
+   +--> StatementInterpreter <-- LayoutStatementInterpreter
    |
-   +--> Interpretador --> linhas físicas e lançamentos lógicos
-   |         |
-   |         +--> Núcleo genérico
-   |         +--> Adaptador do banco, quando reconhecido
+   +--> StatementExporter <-- OpenpyxlStatementExporter
+
+LayoutStatementInterpreter
    |
-   +--> Normalizador --> campos comuns, extras, datas e valores
+LayoutDetector --> LayoutRegistry
    |
-   +--> Validador --> alertas, confiança e reconciliação possível
-   |
-   +--> Exportador Excel --> Lançamentos, Conferência, Metadados
+   +--> InterStatementLayout
+   +--> CaixaStatementLayout
+   +--> ItauStatementLayout
+   +--> SantanderStatementLayout
+   +--> GenericStatementLayout
 ```
 
 ## Componentes
@@ -37,9 +38,9 @@ Orquestrador de processamento
 - mostrar progresso por página;
 - mostrar resultado e alertas compreensíveis.
 
-### Orquestrador
+### Caso de uso
 
-Controla o fluxo, agrega métricas e impede que falhas parciais sejam silenciosas.
+Valida os caminhos, solicita leitura, interpretação e exportação por interfaces e impede falhas silenciosas.
 
 ### Leitor de PDF
 
@@ -72,7 +73,12 @@ Um adaptador pode ajustar:
 - marcação de crédito/débito;
 - validações específicas.
 
-O adaptador Santander será o primeiro candidato, com base na amostra fornecida.
+Os adaptadores registrados são Santander, Itaú, Inter e Caixa. O fallback genérico permanece disponível. Cada classe declara sua assinatura e interpretação, enquanto o registro controla a ordem de detecção.
+
+- Inter usa datas agrupadas e saldo por transação.
+- Caixa usa Data, Data Efetiva, Documento, Histórico, Valor assinado e saldo textual com `C/D`.
+- Itaú usa Entradas e Saídas e não possui Nº Documento.
+- Santander mantém o esquema espacial com documento, crédito e débito.
 
 ### Normalizador
 
@@ -100,8 +106,8 @@ Cria:
 1. usuário seleciona o PDF e destino;
 2. sistema valida extensão e acesso;
 3. leitor extrai palavras por página;
-4. detector identifica regiões e esquemas;
-5. interpretador monta lançamentos;
+4. registro e detector selecionam um layout;
+5. o layout selecionado monta os lançamentos;
 6. normalizador cria o esquema de saída;
 7. validador classifica registros e alertas;
 8. exportador grava um arquivo temporário;
@@ -148,3 +154,12 @@ Não haverá banco de dados na primeira versão. Configurações e regras serão
 3. configurações declarativas para variações simples;
 4. OCR somente como módulo opcional futuro;
 5. eventual processamento em lote sem alterar o pipeline central.
+
+## Regras estruturais
+
+- uma classe pública por arquivo;
+- domínio independente de infraestrutura;
+- dependências externas atrás de portas;
+- nenhum `if banco == ...` no caso de uso;
+- novos layouts entram pelo registro;
+- fachadas em `models.py`, `extraction.py`, `parser.py` e `service.py` mantêm compatibilidade durante a migração.

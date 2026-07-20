@@ -70,6 +70,36 @@ Para o Santander da amostra, testar especialmente:
 - rodapés `Página: n/m` e cabeçalhos repetidos;
 - saldo inicial e final tratados como metadados, não lançamentos.
 
+Para o Itaú da amostra, testar especialmente:
+
+- `Entradas` como crédito positivo;
+- `Saídas` como débito positivo e movimento negativo;
+- ausência da coluna `Nº Documento` no Excel;
+- data herdada pelos lançamentos seguintes do mesmo grupo;
+- `Saldo anterior` ignorado como lançamento;
+- saldo diário associado ao último movimento da linha correspondente;
+- repetição do cabeçalho em páginas seguintes.
+
+Para o Inter:
+
+- datas por extenso compartilhadas pelo grupo;
+- cabeçalho na mesma linha da primeira data;
+- valores `-R$` e `R$`;
+- saldo por transação;
+- continuação entre páginas;
+- rodapé de atendimento ignorado.
+
+Para a Caixa:
+
+- cabeçalho dividido em Data, Documento/Histórico/Valor/Saldo e Data Efetiva;
+- histórico multilinha, documentos com zeros e CNPJ quebrado entre linhas;
+- Data Efetiva com horário e ano inferido;
+- Valor positivo ou negativo conforme o sinal impresso;
+- saldo textual preservado como `valor C` ou `valor D`;
+- `SALDO DIA` na ordem original, com Valor vazio e sem alerta;
+- linhas fora do período preservadas e marcadas para conferência;
+- cabeçalhos e `about:blank n/m` ignorados.
+
 ## Testes de segurança e privacidade
 
 - ausência de chamadas de rede;
@@ -95,7 +125,7 @@ Para o Santander da amostra, testar especialmente:
 - nenhum lançamento do gabarito é descartado silenciosamente;
 - 100% dos débitos e créditos aceitos possuem sinal correto;
 - campos extras do gabarito são preservados;
-- datas e valores exportados são tipos reais do Excel;
+- datas e valores financeiros são tipos reais do Excel, exceto campos cuja fidelidade textual foi explicitamente aprovada, como o saldo Caixa com `C/D`;
 - cabeçalhos, rodapés e resumos não aparecem como lançamentos;
 - registros não interpretados com segurança aparecem em `Conferência`;
 - para o layout Santander aprovado, meta inicial de pelo menos 98% dos lançamentos estruturados corretamente, com 100% de precisão nos valores aceitos;
@@ -104,3 +134,7 @@ Para o Santander da amostra, testar especialmente:
 ## Homologação
 
 O usuário comparará o Excel com o PDF em amostras reais anonimizadas. Divergências serão classificadas como regra genérica, variação de layout, erro de adaptador ou ambiguidade legítima. A versão só será aceita após correção ou sinalização explícita de todas as divergências críticas.
+
+## Estado automatizado atual
+
+Em 20/07/2026, a suíte possui 11 testes aprovados. A validação diagnóstica dos PDFs reais confirmou 14 movimentos no Inter e, na Caixa, 75 movimentos mais 20 saldos diários. PDFs reais sensíveis permanecem fora do repositório.

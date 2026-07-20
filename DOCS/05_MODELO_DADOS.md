@@ -50,17 +50,19 @@ Não haverá banco de dados na primeira versão. Este documento define o modelo 
 |---|---|---|
 | id | texto | único na execução |
 | data | data opcional | pode ser herdada com evidência |
+| data_efetiva | data/hora opcional | Caixa; ano inferido da data contábil e horário preservado |
 | descricao | texto | concatenação controlada de linhas |
 | numero_documento | texto opcional | preservar zeros à esquerda |
 | credito | decimal opcional | valor positivo; vazio em débito |
 | debito | decimal opcional | valor positivo; vazio em crédito |
 | movimento | decimal opcional | crédito positivo, débito negativo |
-| saldo | decimal opcional | apenas com associação confiável |
+| saldo | decimal, texto ou vazio | decimal nos layouts comuns; texto fiel com `C/D` na Caixa |
 | campos_extras | mapa | nome de saída → valor |
 | pagina_origem | inteiro | rastreabilidade |
 | texto_origem | texto | conteúdo mínimo necessário à conferência |
 | confianca | decimal | resultado das evidências |
 | status | enum | aceito ou conferir |
+| somente_saldo | booleano | identifica `SALDO DIA`, que não exige movimento |
 
 ### Alerta
 
@@ -89,6 +91,7 @@ Lancamento     1 --- N campos_extras (mapa dinâmico)
 - interpretar formatos brasileiros;
 - preservar ano inferido somente quando o período do documento oferecer evidência;
 - gravar como data real no Excel, formatada como `dd/mm/aaaa`.
+- Data Efetiva da Caixa é data/hora real, formatada como `dd/mm/aaaa hh:mm`.
 
 ### Valores monetários
 
@@ -96,6 +99,8 @@ Lancamento     1 --- N campos_extras (mapa dinâmico)
 - interpretar marcador posterior `-` como débito quando o layout confirmar essa semântica;
 - usar decimal durante cálculos;
 - gravar número real no Excel, não texto formatado.
+- exceção aprovada: saldo da Caixa é texto como `531,74 C`, preservando o indicador no mesmo campo;
+- `Valor` da Caixa permanece decimal: crédito positivo e débito negativo.
 
 ### Documento
 
@@ -121,6 +126,8 @@ Lancamento     1 --- N campos_extras (mapa dinâmico)
 ### `Lançamentos`
 
 Campos comuns, campos extras, `Página de origem` e, se aprovado na implementação, indicador de alerta. A ordem dos lançamentos segue a ordem do PDF.
+
+Esquema Caixa: `Data`, `Data Efetiva`, `Documento`, `Histórico`, `Valor (R$)`, `Saldo (R$)`, página e status. `SALDO DIA` usa a mesma estrutura, com Valor vazio e status normal.
 
 ### `Conferência`
 

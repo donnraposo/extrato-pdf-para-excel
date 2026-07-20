@@ -1,0 +1,2 @@
+class PdfTextError(RuntimeError):
+    pass
