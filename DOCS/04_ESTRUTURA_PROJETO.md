@@ -19,7 +19,7 @@ extrato-parser/
 │   ├── 09_GUIA_NOVO_LAYOUT.md
 │   ├── 10_OPERACAO_E_DIAGNOSTICO.md
 │   ├── 11_CHANGELOG.md
-│   └── MASTER_PROJECT_PROTOCOL.md
+│ 
 ├── src/extrato_parser/
 │   ├── application/
 │   │   ├── ports/
