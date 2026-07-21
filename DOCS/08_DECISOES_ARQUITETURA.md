@@ -1,5 +1,7 @@
 # 08 — Decisões de Arquitetura
 
+> **Baseline:** 21/07/2026 | ADRs são registros históricos; decisões posteriores prevalecem sobre anteriores quando houver conflito explícito.
+
 ## ADR-001 — Aplicação desktop local
 
 **Decisão:** construir aplicação para Windows, de usuário único e funcionamento offline.
@@ -104,7 +106,7 @@
 
 ## ADR-011 — Tkinter e openpyxl como escolhas iniciais
 
-**Decisão:** planejar Tkinter para interface e openpyxl para Excel, condicionados à validação técnica na implementação.
+**Decisão:** usar Tkinter para interface e openpyxl para Excel.
 
 **Motivo:** baixo peso, funcionamento local e recursos suficientes para o escopo.
 
@@ -189,3 +191,35 @@ Qualquer mudança estrutural deve registrar: contexto, alternativas, impacto, de
 **Consequência:** a coluna Saldo da Caixa não é diretamente somável no Excel; a coluna Valor permanece numérica.
 
 **Data:** 20/07/2026; aprovada pelo usuário.
+
+## ADR-019 — Migração arquitetural incremental
+
+**Decisão:** manter temporariamente `parser.py`, `exporter.py`, `models.py` e `extraction.py` como camada de compatibilidade enquanto algoritmos são movidos para os pacotes definitivos.
+
+**Motivo:** reduzir risco de regressão nos quatro layouts já validados.
+
+**Alternativa rejeitada:** reescrita integral e remoção imediata do legado.
+
+**Consequência:** a arquitetura em camadas é funcional, mas não está completamente desacoplada. Layouts ainda chamam funções privadas do parser legado.
+
+**Data:** 21/07/2026; formalização documental do estado implementado.
+
+## ADR-020 — Documento central de estado
+
+**Decisão:** usar `00_ESTADO_ATUAL.md` como fonte temporal principal de versão, capacidade, testes, limitações e próximos passos.
+
+**Motivo:** documentos de visão, arquitetura e ADR possuem finalidades diferentes e não devem apresentar planejamento antigo como status atual.
+
+**Consequência:** agentes e mantenedores devem começar pelo protocolo e pelo estado atual antes de propor mudanças.
+
+**Data:** 21/07/2026; aprovada na revisão documental completa.
+
+## ADR-021 — Evidência para declarar funcionalidade concluída
+
+**Decisão:** uma capacidade só pode ser marcada como concluída quando houver implementação, teste proporcional ao risco e documentação atualizada.
+
+**Motivo:** evitar divergência entre roadmap, código e suíte automatizada.
+
+**Consequência:** capacidades sem teste end-to-end podem permanecer “parciais” mesmo quando funcionam manualmente.
+
+**Data:** 21/07/2026; aprovada na revisão documental completa.

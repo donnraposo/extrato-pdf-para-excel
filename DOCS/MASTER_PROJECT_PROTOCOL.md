@@ -3,6 +3,8 @@
 
 Versão: 1.0
 
+Aplicação neste repositório: antes de qualquer alteração, consultar também `00_ESTADO_ATUAL.md` e `08_DECISOES_ARQUITETURA.md`. O protocolo define governança; o estado atual do produto é mantido separadamente para evitar que planejamento histórico seja confundido com implementação concluída.
+
 ---
 
 # 1. PAPEL DO AGENTE

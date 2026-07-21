@@ -66,7 +66,7 @@ No Windows:
 
 ## Arquitetura
 
-O projeto utiliza Clean Architecture e princípios SOLID:
+O projeto utiliza uma estrutura inspirada em Clean Architecture e princípios SOLID. A separação principal está implementada, mas a migração do parser e do exportador legados ainda é parcial:
 
 - `application`: portas e caso de uso de conversão;
 - `domain`: entidades independentes de PDF, Excel e interface;
@@ -75,6 +75,8 @@ O projeto utiliza Clean Architecture e princípios SOLID:
 - uma classe pública por arquivo;
 - novos bancos são adicionados pelo registro de layouts, sem alterar o caso de uso;
 - fachadas mantêm compatibilidade com os pontos de entrada existentes.
+
+O estado e a dívida técnica estão detalhados em `DOCS/00_ESTADO_ATUAL.md` e `DOCS/03_ARQUITETURA_SISTEMA.md`.
 
 ```text
 Interface
@@ -85,12 +87,18 @@ ConvertStatement
    └── StatementExporter    ← OpenpyxlStatementExporter
 ```
 
-A documentação completa está em [`DOCS`](DOCS/), começando por:
+A documentação completa está em [`DOCS`](DOCS/). Para entender o andamento, comece por:
 
+- [`00_ESTADO_ATUAL.md`](DOCS/00_ESTADO_ATUAL.md);
 - [`01_VISAO_DO_PROJETO.md`](DOCS/01_VISAO_DO_PROJETO.md);
 - [`03_ARQUITETURA_SISTEMA.md`](DOCS/03_ARQUITETURA_SISTEMA.md);
 - [`08_DECISOES_ARQUITETURA.md`](DOCS/08_DECISOES_ARQUITETURA.md);
+- [`09_GUIA_NOVO_LAYOUT.md`](DOCS/09_GUIA_NOVO_LAYOUT.md);
+- [`10_OPERACAO_E_DIAGNOSTICO.md`](DOCS/10_OPERACAO_E_DIAGNOSTICO.md);
+- [`11_CHANGELOG.md`](DOCS/11_CHANGELOG.md);
 - [`MASTER_PROJECT_PROTOCOL.md`](DOCS/MASTER_PROJECT_PROTOCOL.md).
+
+O estado oficial da baseline está em `00_ESTADO_ATUAL.md`. A arquitetura em camadas está funcional, mas a migração ainda possui código legado de compatibilidade documentado como dívida técnica.
 
 ## Desenvolvimento
 

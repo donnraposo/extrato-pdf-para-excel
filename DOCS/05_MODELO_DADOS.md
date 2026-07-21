@@ -1,138 +1,122 @@
 # 05 — Modelo de Dados
 
-Não haverá banco de dados na primeira versão. Este documento define o modelo lógico em memória e sua projeção no Excel.
+> **Baseline:** 21/07/2026 | Este documento descreve as classes efetivamente implementadas. Não existe banco de dados.
 
-## Entidades
-
-### DocumentoFonte
-
-| Campo | Tipo | Regra |
-|---|---|---|
-| id | texto | identificador interno da execução |
-| nome_arquivo | texto | nome, sem necessidade de caminho completo no Excel |
-| quantidade_paginas | inteiro | maior que zero |
-| banco_detectado | texto opcional | pode ser `Desconhecido` |
-| layout_detectado | texto opcional | versão/assinatura quando conhecida |
-| periodo_inicial | data opcional | se identificado |
-| periodo_final | data opcional | se identificado |
-| processado_em | data/hora | momento local |
-
-### PaginaFonte
-
-| Campo | Tipo | Regra |
-|---|---|---|
-| numero | inteiro | inicia em 1 |
-| largura/altura | decimal | sistema de coordenadas do PDF |
-| possui_texto | booleano | alerta possível quando falso |
-| palavras | coleção | texto e coordenadas |
-
-### EsquemaDetectado
-
-| Campo | Tipo | Regra |
-|---|---|---|
-| pagina_inicial/final | inteiro | região de validade |
-| campos | coleção de CampoDetectado | inclui comuns e extras |
-| confianca | decimal | evidência estrutural |
-
-### CampoDetectado
-
-| Campo | Tipo | Regra |
-|---|---|---|
-| nome_original | texto | cabeçalho do PDF |
-| nome_saida | texto | nome único no Excel |
-| tipo | enum | data, texto, moeda, número ou desconhecido |
-| papel | enum | comum, crédito, débito, saldo ou extra |
-| faixa_x | intervalo | limites horizontais aproximados |
-
-### Lancamento
-
-| Campo | Tipo | Regra |
-|---|---|---|
-| id | texto | único na execução |
-| data | data opcional | pode ser herdada com evidência |
-| data_efetiva | data/hora opcional | Caixa; ano inferido da data contábil e horário preservado |
-| descricao | texto | concatenação controlada de linhas |
-| numero_documento | texto opcional | preservar zeros à esquerda |
-| credito | decimal opcional | valor positivo; vazio em débito |
-| debito | decimal opcional | valor positivo; vazio em crédito |
-| movimento | decimal opcional | crédito positivo, débito negativo |
-| saldo | decimal, texto ou vazio | decimal nos layouts comuns; texto fiel com `C/D` na Caixa |
-| campos_extras | mapa | nome de saída → valor |
-| pagina_origem | inteiro | rastreabilidade |
-| texto_origem | texto | conteúdo mínimo necessário à conferência |
-| confianca | decimal | resultado das evidências |
-| status | enum | aceito ou conferir |
-| somente_saldo | booleano | identifica `SALDO DIA`, que não exige movimento |
-
-### Alerta
-
-| Campo | Tipo | Regra |
-|---|---|---|
-| codigo | texto | estável para testes |
-| severidade | enum | informação, aviso ou erro |
-| mensagem | texto | legível ao usuário |
-| pagina | inteiro opcional | origem |
-| lancamento_id | texto opcional | vínculo quando existir |
-
-## Relacionamentos
+## Visão geral
 
 ```text
-DocumentoFonte 1 --- N PaginaFonte
-DocumentoFonte 1 --- N EsquemaDetectado
-DocumentoFonte 1 --- N Lancamento
-Lancamento     1 --- N Alerta
-Lancamento     1 --- N campos_extras (mapa dinâmico)
+PDF
+ └── Word[]
+      └── PhysicalLine[]
+           └── StatementLayout.parse(...)
+                └── ParseResult
+                     ├── StatementEntry[]
+                     ├── rejected_lines[]
+                     ├── metadata
+                     └── definição dinâmica da saída
 ```
 
-## Regras de transformação
+## Entidades implementadas
 
-### Datas
+### `Word`
 
-- interpretar formatos brasileiros;
-- preservar ano inferido somente quando o período do documento oferecer evidência;
-- gravar como data real no Excel, formatada como `dd/mm/aaaa`.
-- Data Efetiva da Caixa é data/hora real, formatada como `dd/mm/aaaa hh:mm`.
+Representa uma palavra extraída do PDF.
 
-### Valores monetários
+| Campo | Tipo | Finalidade |
+|---|---|---|
+| `text` | `str` | texto original |
+| `x0`, `x1` | `float` | limites horizontais |
+| `top`, `bottom` | `float` | limites verticais |
+| `page` | `int` | página iniciando em 1 |
 
-- interpretar ponto como separador de milhar e vírgula como decimal;
-- interpretar marcador posterior `-` como débito quando o layout confirmar essa semântica;
-- usar decimal durante cálculos;
-- gravar número real no Excel, não texto formatado.
-- exceção aprovada: saldo da Caixa é texto como `531,74 C`, preservando o indicador no mesmo campo;
-- `Valor` da Caixa permanece decimal: crédito positivo e débito negativo.
+### `PhysicalLine`
 
-### Documento
+Representa palavras agrupadas por proximidade vertical.
 
-- tratar como texto;
-- `-` isolado equivale a ausente;
-- não remover zeros à esquerda.
+| Campo | Tipo | Finalidade |
+|---|---|---|
+| `words` | `list[Word]` | palavras ordenadas horizontalmente |
+| `page` | `int` | página de origem |
+| `top` | `float` | posição vertical média |
+| `text` | propriedade | texto reconstruído da linha |
 
-### Descrição
+### `StatementEntry`
 
-- unir linhas pertencentes ao mesmo lançamento com espaço;
-- não incorporar cabeçalhos, rodapés ou valores de outras colunas;
-- detalhes como parcela/período podem permanecer na descrição, salvo se detectados como campo extra explícito.
+Representa lançamento, linha informativa de saldo ou registro que exige revisão.
 
-### Campos extras
+| Campo | Tipo | Regra |
+|---|---|---|
+| `transaction_date` | `date | None` | data contábil; herança depende do layout |
+| `effective_date` | `date | datetime | None` | usado principalmente pela Caixa |
+| `description` | `str` | descrição normalizada |
+| `document_number` | `str | None` | texto; preserva zeros à esquerda |
+| `credit` | `Decimal | None` | crédito positivo |
+| `debit` | `Decimal | None` | débito positivo na coluna própria |
+| `movement` | `Decimal | None` | crédito positivo ou débito negativo |
+| `balance` | `Decimal | str | None` | decimal ou saldo textual Caixa com C/D |
+| `page` | `int` | página de origem |
+| `source_text` | `str` | evidência textual mínima |
+| `extra_fields` | `dict[str, Any]` | campos adicionais |
+| `warnings` | `list[str]` | motivos de revisão |
+| `balance_only` | `bool` | linha de saldo sem movimento, como `SALDO DIA` |
 
-- nomes duplicados recebem desambiguação previsível;
-- ordem segue a aparição estável no documento;
-- ausência em determinado lançamento gera célula vazia;
-- tipos são inferidos conservadoramente.
+`needs_review` é verdadeiro quando há alertas, data ausente ou movimento ausente em linha que não seja `balance_only`.
 
-## Modelo das abas
+### `ParseResult`
+
+| Campo | Tipo | Finalidade |
+|---|---|---|
+| `source` | `Path` | PDF de origem |
+| `entries` | `list[StatementEntry]` | registros interpretados |
+| `rejected_lines` | `list[tuple[int,str,str]]` | página, texto e motivo |
+| `metadata` | `dict[str, Any]` | banco provável, páginas e contagens |
+| `detected_extra_fields` | `list[str]` | ordem de campos adicionais |
+| `output_fields` | `list[str]` | chaves e ordem do Excel |
+| `field_labels` | `dict[str,str]` | rótulos exibidos por layout |
+
+## Conceitos não implementados como entidades
+
+`DocumentoFonte`, `PaginaFonte`, `EsquemaDetectado`, `CampoDetectado` e `Alerta` tipado foram considerados no planejamento inicial, mas não existem como classes na baseline. Suas responsabilidades estão distribuídas entre `ParseResult`, `PhysicalLine`, configurações dos layouts e mensagens em `warnings`.
+
+## Invariantes
+
+- moeda usa `Decimal` durante parsing;
+- débito é positivo em `debit` e negativo em `movement`;
+- crédito é positivo em `credit` e `movement`;
+- identificadores não são convertidos para número;
+- ausência é `None`, não texto vazio artificial;
+- página e texto de origem acompanham cada registro;
+- saldo só é associado quando o layout encontra evidência;
+- linha `balance_only` pode ter movimento ausente sem ser erro.
+
+## Esquemas por layout
+
+| Layout | `output_fields` |
+|---|---|
+| Santander | `date, description, document, credit, debit, movement, balance` |
+| Itaú | `date, description, credit, debit, movement, balance` |
+| Inter | `date, description, credit, debit, movement, balance` |
+| Caixa | `date, effective_date, document, description, movement, balance` |
+| Genérico | definido conforme cabeçalhos reconhecidos |
+
+## Projeção no Excel
 
 ### `Lançamentos`
 
-Campos comuns, campos extras, `Página de origem` e, se aprovado na implementação, indicador de alerta. A ordem dos lançamentos segue a ordem do PDF.
-
-Esquema Caixa: `Data`, `Data Efetiva`, `Documento`, `Histórico`, `Valor (R$)`, `Saldo (R$)`, página e status. `SALDO DIA` usa a mesma estrutura, com Valor vazio e status normal.
+Campos definidos pelo layout, depois campos extras, `Página de origem` e `Status`. Datas e moedas usam tipos nativos do Excel. Exceção aprovada: saldo Caixa permanece texto com C/D.
 
 ### `Conferência`
 
-Página, texto de origem, valores interpretados, alertas e motivo da baixa confiança.
+Página, tipo, texto original e motivo. Contém entradas com `needs_review` e linhas rejeitadas.
 
 ### `Metadados`
 
-Dados do documento, esquema detectado, contagens, período, saldo inicial/final quando identificados e resumo dos alertas.
+Arquivo de origem, horário de processamento e pares fornecidos pelo layout.
+
+## Evolução recomendada
+
+- criar tipos estáveis para código/severidade de alerta;
+- introduzir objeto explícito de assinatura/versão do layout;
+- separar saldo textual de saldo numérico sem quebrar a saída Caixa;
+- formalizar esquema de campos extras;
+- avaliar objeto `DocumentContext` apenas quando houver necessidade comprovada.

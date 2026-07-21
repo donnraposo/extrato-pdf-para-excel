@@ -1,140 +1,178 @@
 # 07 — Plano de Testes
 
-## Princípios
+> **Baseline:** 21/07/2026 | 11 testes automatizados coletados e aprovados.
 
-- resultados esperados devem ser preparados manualmente a partir de amostras anonimizadas;
-- nenhum teste deve depender de internet;
-- valores financeiros devem ser comparados como decimais;
-- toda correção de layout deve adicionar teste de regressão;
-- o sistema deve preferir alertar a produzir silenciosamente dado incorreto.
+## Objetivo
 
-## Testes unitários
+Evitar perda silenciosa, troca de sinal, associação incorreta de data/saldo e regressão de layouts homologados.
 
-### Datas brasileiras
+## Pirâmide atual
 
-- `05/02` com ano do período;
-- `31/12/2026` completo;
-- datas inválidas e fora do período;
-- herança de data dentro do mesmo grupo.
+| Nível | Existente | Lacuna |
+|---|---:|---|
+| Funções de normalização | 2 | mais formatos inválidos e limites |
+| Parser/layout | 6 | detecção isolada, falsos positivos e variações |
+| Exportação Excel | 3 | erros de I/O e workbook completo |
+| End-to-end com PDF | 0 versionado | necessário |
+| Interface | 0 automatizado | necessário antes da distribuição |
+| Segurança/privacidade | 0 automatizado | necessário |
 
-### Moeda
+## Inventário dos testes
 
-- `1.368,50` → 1368,50;
-- `335,99-` → -335,99 quando confirmado como débito;
-- crédito e débito em colunas separadas;
-- zero, célula vazia e formatos inválidos.
+### `test_normalization.py`
 
-### Campos
+- crédito e débito em moeda brasileira;
+- data curta usando ano padrão e data inválida.
 
-- aliases conhecidos;
-- cabeçalho extra preservado;
-- nomes extras duplicados;
-- documento `-` convertido em vazio;
-- documento com zero à esquerda preservado.
+### `test_parser.py`
 
-### Agrupamento
+- Santander com descrição multilinha, documento, crédito, débito, saldo e detalhes posteriores.
 
-- descrição de uma linha;
+### `test_itau_parser.py`
+
+- cabeçalho dinâmico;
+- datas agrupadas;
+- Entradas/Saídas;
+- legenda lateral;
+- saldo anterior e saldo final;
+- esquema sem documento.
+
+### `test_inter_parser.py`
+
+- datas agrupadas e valores assinados;
+- fallback textual quando coordenadas são inadequadas;
+- amostra sintética completa.
+
+### `test_caixa_parser.py`
+
+- cabeçalho dividido;
+- Data Efetiva;
 - descrição multilinha;
-- vários lançamentos sob uma única data;
-- troca de página no meio de um grupo;
-- cabeçalho repetido não incorporado à descrição.
+- sinais e saldo C/D;
+- `SALDO DIA`;
+- cabeçalho repetido e artefatos de página.
 
-## Testes de integração
+### `test_exporter.py`
 
-- PDF textual → representação espacial;
-- representação espacial → esquema;
-- esquema → lançamentos;
-- lançamentos → Excel;
-- abertura do Excel gerado e verificação de abas, células e tipos;
-- falha controlada para PDF vazio, inválido, protegido ou sem texto.
+- três abas e valor numérico;
+- esquema dinâmico Itaú;
+- Data Efetiva Caixa.
 
-## Testes de regressão por banco
+## Regras obrigatórias
 
-Cada layout suportado terá:
+- moeda é comparada como `Decimal` no parser;
+- correção de banco exige regressão específica;
+- teste não deve depender de internet;
+- fixture sensível deve ser anonimizada;
+- texto não reconhecido não pode desaparecer;
+- teste de layout deve validar primeira, intermediária e última transação quando possível;
+- suíte completa deve rodar após qualquer alteração.
 
-- PDF anonimizado mínimo;
-- manifesto do layout esperado;
-- conjunto esperado de lançamentos;
-- campos extras esperados;
-- alertas esperados;
-- versão/assinatura do adaptador.
+## Critérios por domínio
 
-Para o Santander da amostra, testar especialmente:
+### Datas
 
-- data presente apenas no primeiro lançamento diário;
-- descrições com parcela e período;
-- valor de débito com sinal posterior;
-- crédito e débito em faixas distintas;
-- saldo apenas no fim de determinados grupos;
-- rodapés `Página: n/m` e cabeçalhos repetidos;
-- saldo inicial e final tratados como metadados, não lançamentos.
+- formato completo e curto;
+- ano inferido do período;
+- virada de ano;
+- data herdada;
+- data inválida;
+- Data Efetiva com horário.
 
-Para o Itaú da amostra, testar especialmente:
+### Valores
 
-- `Entradas` como crédito positivo;
-- `Saídas` como débito positivo e movimento negativo;
-- ausência da coluna `Nº Documento` no Excel;
-- data herdada pelos lançamentos seguintes do mesmo grupo;
-- `Saldo anterior` ignorado como lançamento;
-- saldo diário associado ao último movimento da linha correspondente;
-- repetição do cabeçalho em páginas seguintes.
+- milhar e centavos brasileiros;
+- zero;
+- sinal anterior e posterior;
+- crédito/débito separados;
+- valor assinado;
+- saldo decimal;
+- saldo textual C/D.
 
-Para o Inter:
+### Estrutura
 
-- datas por extenso compartilhadas pelo grupo;
-- cabeçalho na mesma linha da primeira data;
-- valores `-R$` e `R$`;
-- saldo por transação;
-- continuação entre páginas;
-- rodapé de atendimento ignorado.
+- cabeçalho simples e dividido;
+- cabeçalho repetido;
+- rodapé;
+- mudança de página;
+- descrição multilinha;
+- documento ausente e com zeros;
+- saldo anterior/final/diário;
+- campos dinâmicos.
 
-Para a Caixa:
+## Testes planejados ainda não implementados
 
-- cabeçalho dividido em Data, Documento/Histórico/Valor/Saldo e Data Efetiva;
-- histórico multilinha, documentos com zeros e CNPJ quebrado entre linhas;
-- Data Efetiva com horário e ano inferido;
-- Valor positivo ou negativo conforme o sinal impresso;
-- saldo textual preservado como `valor C` ou `valor D`;
-- `SALDO DIA` na ordem original, com Valor vazio e sem alerta;
-- linhas fora do período preservadas e marcadas para conferência;
-- cabeçalhos e `about:blank n/m` ignorados.
+### Unidade
 
-## Testes de segurança e privacidade
+- ordem e fallback do `LayoutRegistry`;
+- falsos positivos de `matches`;
+- propriedade `needs_review`;
+- agrupador de linhas em tolerâncias-limite;
+- códigos de alerta, após tipagem.
 
-- ausência de chamadas de rede;
-- logs não contêm extrato completo;
-- arquivo existente não é sobrescrito sem confirmação;
-- temporários são removidos após sucesso ou falha;
-- caminhos e nomes incomuns não executam comandos;
-- arquivo não PDF é rejeitado de forma legível.
+### Integração
 
-## Testes de interface e usuário
+- PDF textual mínimo → Excel;
+- PDF vazio, inválido, protegido e sem texto;
+- falha de destino sem permissão;
+- saída já existente;
+- limpeza de temporário após falha;
+- tipos e formatos de todas as colunas.
 
-- selecionar PDF e cancelar seleção;
-- selecionar destino e cancelar;
-- acompanhar progresso em PDF com várias páginas;
-- impedir início duplicado;
-- apresentar erro compreensível;
-- abrir/encontrar o resultado após conclusão;
-- interface permanece responsiva durante o processamento.
+### Interface
 
-## Critérios de aprovação da primeira versão
+- cancelar seletores;
+- impedir execução duplicada;
+- manter responsividade;
+- mostrar mensagem de erro;
+- reabilitar botão após conclusão/falha.
 
-- 100% das páginas do arquivo de teste são visitadas;
-- nenhum lançamento do gabarito é descartado silenciosamente;
-- 100% dos débitos e créditos aceitos possuem sinal correto;
-- campos extras do gabarito são preservados;
-- datas e valores financeiros são tipos reais do Excel, exceto campos cuja fidelidade textual foi explicitamente aprovada, como o saldo Caixa com `C/D`;
-- cabeçalhos, rodapés e resumos não aparecem como lançamentos;
-- registros não interpretados com segurança aparecem em `Conferência`;
-- para o layout Santander aprovado, meta inicial de pelo menos 98% dos lançamentos estruturados corretamente, com 100% de precisão nos valores aceitos;
-- testes automatizados passam no ambiente de desenvolvimento e no executável Windows.
+### Segurança
 
-## Homologação
+- ausência de rede;
+- ausência de extrato integral em logs;
+- caminhos malformados;
+- arquivos sensíveis fora do controle de versão.
 
-O usuário comparará o Excel com o PDF em amostras reais anonimizadas. Divergências serão classificadas como regra genérica, variação de layout, erro de adaptador ou ambiguidade legítima. A versão só será aceita após correção ou sinalização explícita de todas as divergências críticas.
+## Homologação por banco
 
-## Estado automatizado atual
+Para cada layout:
 
-Em 20/07/2026, a suíte possui 11 testes aprovados. A validação diagnóstica dos PDFs reais confirmou 14 movimentos no Inter e, na Caixa, 75 movimentos mais 20 saldos diários. PDFs reais sensíveis permanecem fora do repositório.
+1. preparar gabarito manual anonimizado;
+2. comparar quantidade e ordem;
+3. comparar datas e descrições;
+4. comparar documentos;
+5. comparar valores e sinais;
+6. comparar saldos;
+7. revisar conferência;
+8. validar esquema Excel;
+9. registrar variação e data;
+10. obter aprovação do usuário.
+
+## Critérios de aprovação
+
+- todas as páginas visitadas;
+- nenhum lançamento descartado silenciosamente;
+- 100% de sinais corretos nos valores aceitos;
+- tipos Excel corretos, exceto exceção documental Caixa;
+- cabeçalhos/rodapés ausentes dos lançamentos;
+- ambiguidades visíveis em `Conferência`;
+- suíte completa aprovada;
+- comparação manual sem divergência crítica.
+
+## Comandos
+
+```powershell
+# suíte completa
+.\.venv\Scripts\python.exe -m pytest
+
+# inventário detalhado
+.\.venv\Scripts\python.exe -m pytest --collect-only -vv
+
+# arquivo específico
+.\.venv\Scripts\python.exe -m pytest tests\test_itau_parser.py
+```
+
+## Evidência da baseline
+
+Ambiente: Windows, Python 3.14.6, pytest 9.1.1. Total: 11 testes. PDFs reais permanecem fora do repositório; portanto, as afirmações de validação real são históricas/documentais e não reproduzíveis automaticamente na baseline.

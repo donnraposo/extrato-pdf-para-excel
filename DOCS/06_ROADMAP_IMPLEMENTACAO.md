@@ -1,122 +1,145 @@
 # 06 — Roadmap de Implementação
 
-Este roadmap só poderá ser executado após aprovação explícita da arquitetura completa.
+> **Baseline:** 21/07/2026 | **Versão:** 0.1.0.
 
-## Estado em 20/07/2026
+## Legenda
 
-- Sprints 01 a 08: implementadas para o escopo atual.
-- Layouts validados: Santander, Itaú, Inter e Caixa.
-- Clean Architecture/SOLID: estrutura-base implementada com portas, caso de uso, domínio, infraestrutura e registro de layouts.
-- Testes automatizados atuais: 11 aprovados.
-- Sprint 09: pendente; não há executável empacotado aprovado.
+- **Concluído:** implementado e coberto por ao menos um teste relevante.
+- **Parcial:** utilizável, mas incompleto ou sem cobertura suficiente.
+- **Pendente:** ainda não implementado.
+- **Bloqueado:** depende de decisão, amostra ou autorização externa.
 
-## Sprint 01 — Fundação e modelos
+## Resumo
 
-**Objetivo:** preparar projeto, modelos de domínio, configuração e qualidade básica.
+| Entrega | Estado | Observação |
+|---|---|---|
+| Fundação Python | Concluído | pacote `src`, ambiente virtual e dependências |
+| Extração PDF textual | Concluído | pdfplumber e coordenadas |
+| Parser Santander | Concluído | regressão sintética |
+| Parser Itaú | Concluído | regressão sintética e correções com PDF real |
+| Parser Inter | Concluído | três testes |
+| Parser Caixa | Concluído | esquema específico e teste |
+| Fallback genérico | Parcial | não garante campos extras universais |
+| Excel dinâmico | Concluído | três testes de exportação |
+| Interface Windows | Concluído | teste manual; sem automação UI |
+| Clean Architecture | Parcial | estrutura pronta; parsing/exportação ainda legados |
+| Testes end-to-end com PDFs | Pendente | dados reais não versionados |
+| Executável Windows | Pendente | PyInstaller não configurado |
+| OCR | Fora do escopo atual | exige nova decisão |
 
-**Arquivos/áreas:** configuração do projeto, domínio, testes unitários iniciais e documentação de execução.
+## Fase A — MVP funcional
 
-**Dependências:** decisão final de versões e bibliotecas.
+**Estado:** concluída.
 
-**Resultado esperado:** projeto executável em desenvolvimento e modelos independentes de PDF/UI.
+Entregas:
 
-## Sprint 02 — Extração espacial
+- modelos básicos;
+- normalização brasileira;
+- extração espacial;
+- Santander;
+- exportação Excel;
+- interface Tkinter;
+- inicializador local.
 
-**Objetivo:** transformar PDFs textuais em páginas, palavras e coordenadas.
+## Fase B — Esquema dinâmico e novos bancos
 
-**Arquivos/áreas:** `extraction`, fixtures anonimizadas e testes de integração.
+**Estado:** concluída para assinaturas conhecidas; parcial para universalidade.
 
-**Dependências:** biblioteca PDF aprovada; amostra PDF real anonimizada.
+Entregas:
 
-**Resultado esperado:** visualização diagnóstica reproduzível das palavras extraídas por página.
+- Itaú com Entradas/Saídas;
+- Inter com datas por extenso e saldo por transação;
+- Caixa com Data Efetiva, Valor, saldo C/D e `SALDO DIA`;
+- definição de `output_fields` e `field_labels`.
 
-## Sprint 03 — Detector de esquema genérico
+Pendente:
 
-**Objetivo:** detectar cabeçalhos, faixas de colunas, campos comuns e extras.
+- formalizar campos extras arbitrários;
+- testar variações adicionais de cada banco;
+- versionar assinaturas.
 
-**Arquivos/áreas:** `layout`, aliases e testes sintéticos.
+## Fase C — Refatoração arquitetural
 
-**Dependências:** saída estável da Sprint 02.
+**Estado:** parcial.
 
-**Resultado esperado:** esquema detectado por página com evidências e confiança.
+Concluído:
 
-## Sprint 04 — Interpretador de lançamentos
+- domínio;
+- portas;
+- caso de uso;
+- leitor PDF de infraestrutura;
+- exportador de infraestrutura;
+- contrato, detector e registro de layouts;
+- composition root em `service.py`;
+- fachadas de compatibilidade.
 
-**Objetivo:** reconstruir linhas e agrupar descrições multilinha, datas herdadas, documentos e valores.
+Pendente:
 
-**Arquivos/áreas:** interpretador, máquina de estados e normalização.
+1. mover parsers concretos para cada pacote de layout;
+2. eliminar imports de funções privadas do módulo legado;
+3. mover implementação completa do workbook para infraestrutura;
+4. reduzir fachadas a reexportações ou removê-las com migração controlada;
+5. adicionar testes unitários do detector/registro.
 
-**Dependências:** esquema detectado; regras brasileiras de data/moeda.
+## Fase D — Qualidade e homologação
 
-**Resultado esperado:** lançamentos tipados, ainda sem interface ou Excel final.
+**Estado:** parcial.
 
-## Sprint 05 — Santander e validação contábil
+Concluído:
 
-**Objetivo:** criar o primeiro adaptador e validar a amostra Santander.
+- 11 testes automatizados;
+- regressões sintéticas dos quatro bancos;
+- testes básicos do Excel e normalização;
+- conferência explícita para ambiguidades.
 
-**Arquivos/áreas:** adaptador Santander, regressões e validador.
+Pendente:
 
-**Dependências:** PDF original ou páginas anonimizadas no momento dos testes; resultado esperado manual.
+- fixtures PDF anonimizadas;
+- testes end-to-end;
+- cobertura automatizada;
+- testes de arquivos inválidos/protegidos;
+- testes de permissão e sobrescrita;
+- testes de interface;
+- matriz de gabaritos versionada;
+- reconciliação de totais e saldos quando possível.
 
-**Resultado esperado:** sinais, agrupamentos e saldos associados conforme critérios do plano de testes.
+## Fase E — Distribuição Windows
 
-## Sprint 06 — Exportação Excel
+**Estado:** pendente.
 
-**Objetivo:** gerar `.xlsx` seguro e utilizável.
+Plano:
 
-**Arquivos/áreas:** exportador e testes de leitura do arquivo gerado.
+1. escolher modo portátil ou instalador;
+2. configurar PyInstaller;
+3. incluir dependências de PDF;
+4. testar em máquina Windows limpa;
+5. documentar atualização e desinstalação;
+6. avaliar falso positivo de antivírus;
+7. versionar artefato e checksum;
+8. homologar com os quatro bancos.
 
-**Dependências:** modelo validado.
+## Backlog futuro sujeito a nova aprovação
 
-**Resultado esperado:** abas `Lançamentos`, `Conferência` e `Metadados`, tipos e filtros corretos.
+- OCR;
+- processamento de vários PDFs;
+- importação de faturas;
+- CLI formal;
+- regras configuráveis sem código;
+- dashboard de reconciliação;
+- banco de dados;
+- serviços externos;
+- atualizações automáticas.
 
-## Sprint 07 — Interface Windows
+## Próxima entrega recomendada
 
-**Objetivo:** criar tela de seleção, destino, progresso e resultado.
+Concluir a Fase C antes de ampliar o número de bancos. O objetivo é remover dependências privadas do módulo legado mantendo os 11 testes e adicionando testes do detector e do caso de uso.
 
-**Arquivos/áreas:** `ui` e orquestrador.
+## Critério de atualização deste roadmap
 
-**Dependências:** pipeline funcional sem interface.
+Uma entrega muda para **Concluído** somente quando:
 
-**Resultado esperado:** processamento completo sem terminal e sem congelamento perceptível da janela.
-
-## Sprint 08 — Robustez e novos layouts
-
-**Objetivo:** testar pelo menos um layout adicional e confirmar extensibilidade.
-
-**Arquivos/áreas:** adaptadores/configurações, regressões e mensagens.
-
-**Dependências:** amostra anonimizada de outro banco e Excel esperado.
-
-**Resultado esperado:** campos extras dinâmicos e fallback genérico comprovados.
-
-**Estado:** concluída com Itaú, Inter e Caixa. O PDF real da Caixa foi validado com 75 movimentos e 20 linhas `SALDO DIA`; o PDF Inter validado contém 14 movimentos.
-
-## Sprint 08.1 — Refatoração arquitetural
-
-**Objetivo:** aplicar SOLID, Clean Architecture e uma classe por arquivo.
-
-**Resultado:** entidades, portas, caso de uso, infraestrutura, detector, registro e classes de layout separados; fachadas mantidas para compatibilidade.
-
-**Próximo débito técnico:** continuar reduzindo funções legadas concentradas nas fachadas sem mudar o comportamento homologado.
-
-## Sprint 09 — Distribuição
-
-**Objetivo:** gerar executável Windows e guia do usuário.
-
-**Arquivos/áreas:** build, versão, README e artefato de distribuição.
-
-**Dependências:** testes completos aprovados.
-
-**Resultado esperado:** aplicação instalável ou portátil, com procedimento reproduzível de build.
-
-## Fora do escopo inicial
-
-- OCR para PDFs escaneados;
-- processamento de múltiplos PDFs em lote;
-- armazenamento em banco;
-- integração com nuvem ou bancos;
-- interpretação por serviços externos de IA;
-- faturas de cartão.
-
-Esses itens exigem nova análise de impacto e aprovação.
+- código existe;
+- teste proporcional ao risco passa;
+- documentação foi atualizada;
+- não existe divergência crítica conhecida;
+- aprovação foi obtida quando exigida.

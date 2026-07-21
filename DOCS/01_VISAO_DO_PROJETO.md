@@ -1,10 +1,12 @@
 # 01 — Visão do Projeto
 
+> **Baseline:** 21/07/2026 | **Versão:** 0.1.0 | **Estado:** MVP funcional em evolução. Consulte `00_ESTADO_ATUAL.md` para o status operacional.
+
 ## Objetivo principal
 
 Criar uma aplicação local para Windows que permita selecionar um único extrato bancário em PDF, processar todas as suas páginas e gerar um único arquivo Excel com os lançamentos identificados.
 
-O sistema reconhece automaticamente o layout bancário e os campos disponíveis. O modelo financeiro interno possui sete campos normalizados:
+O sistema reconhece layouts bancários conhecidos e tenta interpretar layouts tabulares pelo fallback genérico. O modelo interno possui campos normalizados opcionais; nem todos aparecem em todos os bancos:
 
 1. Data;
 2. Descrição;
@@ -12,7 +14,9 @@ O sistema reconhece automaticamente o layout bancário e os campos disponíveis.
 4. Crédito (R$);
 5. Débito (R$);
 6. Movimento (R$);
-7. Saldo (R$).
+7. Saldo (R$);
+8. Data Efetiva, quando existente;
+9. campos adicionais.
 
 O Excel utiliza esquema dinâmico por layout. Campos ausentes não são inventados e campos específicos podem ser preservados. Portanto, arquivos gerados para bancos diferentes podem possuir colunas diferentes.
 
@@ -58,6 +62,10 @@ Campos reconhecidos que não fazem parte do esquema comum são adicionados autom
 
 Registros ambíguos ou incompletos são preservados em uma aba de conferência, acompanhados da página, texto original e motivo do alerta.
 
+### UC06 — Identificar o layout
+
+O sistema percorre um registro ordenado de layouts específicos e usa o fallback genérico somente quando nenhuma assinatura anterior corresponde.
+
 ## Requisitos funcionais
 
 - RF01: selecionar um arquivo PDF por interface gráfica;
@@ -72,7 +80,7 @@ Registros ambíguos ou incompletos são preservados em uma aba de conferência, 
 - RF10: preservar crédito e débito em colunas separadas, com valores positivos;
 - RF10.1: calcular Movimento com crédito positivo e débito negativo;
 - RF11: não inventar nem repetir saldo quando ele não estiver associado ao lançamento;
-- RF12: detectar e preservar colunas adicionais;
+- RF12: suportar colunas adicionais no modelo e preservá-las quando o layout conseguir detectá-las; a detecção universal permanece parcial;
 - RF13: reunir todas as páginas em um único `.xlsx`;
 - RF14: gerar abas `Lançamentos`, `Conferência` e `Metadados`;
 - RF15: informar conclusão, quantidade de registros e alertas;
@@ -142,3 +150,11 @@ Registros ambíguos ou incompletos são preservados em uma aba de conferência, 
 - definir, durante a validação, o limiar mínimo de confiança para envio à aba `Conferência`;
 - definir política futura para PDFs escaneados e protegidos por senha;
 - definir se saldo inicial e saldo final também devem aparecer como metadados destacados.
+- definir política de sobrescrita de arquivo existente;
+- definir critérios formais de versionamento e homologação das assinaturas bancárias.
+
+## Estado do escopo
+
+- **Implementado:** interface, PDF textual, Excel, Santander, Itaú, Inter e Caixa.
+- **Parcial:** fallback genérico, campos extras universais e validação contábil automática.
+- **Pendente:** executável empacotado, OCR, lote, telemetria segura e testes automatizados de interface.

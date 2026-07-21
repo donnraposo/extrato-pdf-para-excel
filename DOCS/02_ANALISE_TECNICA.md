@@ -1,5 +1,7 @@
 # 02 — Análise Técnica
 
+> **Baseline:** 21/07/2026 | Este documento distingue tecnologia adotada de alternativa não implementada.
+
 ## Estratégia recomendada
 
 Usar uma arquitetura híbrida, local e determinística:
@@ -17,14 +19,15 @@ O reconhecimento genérico atende layouts bem estruturados. Adaptadores determin
 
 ## Arquitetura implementada
 
-A aplicação adota Clean Architecture e princípios SOLID:
+A aplicação adota uma estrutura inspirada em Clean Architecture e princípios SOLID:
 
 - entidades não dependem de PDF, Excel ou interface;
 - o caso de uso depende de contratos de leitura, interpretação e exportação;
 - `pdfplumber` e `openpyxl` ficam na infraestrutura;
 - layouts implementam um contrato comum e são selecionados por detector e registro;
 - cada classe pública ocupa um arquivo próprio;
-- fachadas preservam compatibilidade com os pontos de entrada anteriores.
+- fachadas preservam compatibilidade com os pontos de entrada anteriores;
+- a migração é parcial: layouts ainda delegam algoritmos para funções privadas em `parser.py`, e a infraestrutura Excel delega para `exporter.py`.
 
 Fluxo de dependências: `presentation -> application -> ports/domain`, enquanto infraestrutura e layouts implementam os contratos da aplicação.
 
@@ -32,13 +35,13 @@ Fluxo de dependências: `presentation -> application -> ports/domain`, enquanto 
 
 ### Linguagem
 
-**Python 3.12 ou versão estável compatível no momento da implementação.**
+**Adotado:** Python `>=3.12`. Ambiente virtual da baseline: Python 3.14.6.
 
 Vantagens: ecossistema maduro para PDF e Excel, desenvolvimento rápido e boa integração com interface desktop. Desvantagens: distribuição exige empacotamento e controle cuidadoso das dependências.
 
 ### Extração de PDF
 
-#### pdfplumber — recomendado para o núcleo
+#### pdfplumber — adotado
 
 - extrai palavras, caixas delimitadoras e tabelas;
 - permite reconstruir colunas por coordenadas;
@@ -46,7 +49,7 @@ Vantagens: ecossistema maduro para PDF e Excel, desenvolvimento rápido e boa in
 
 Risco: alguns PDFs possuem ordem textual ou codificação interna defeituosa.
 
-#### PyMuPDF — alternativa e fallback
+#### PyMuPDF — alternativa não implementada
 
 - rápido;
 - boa extração em blocos, palavras e coordenadas;
@@ -64,7 +67,7 @@ Decisão: não usar como núcleo na primeira versão.
 
 ### Interface gráfica
 
-#### Tkinter — recomendado para a primeira versão
+#### Tkinter — adotado
 
 - acompanha o Python;
 - suficiente para seleção, progresso, mensagens e salvamento;
@@ -79,7 +82,7 @@ Decisão: Tkinter inicialmente, preservando separação entre interface e motor.
 
 ### Excel
 
-#### openpyxl — recomendado
+#### openpyxl — adotado
 
 - cria `.xlsx`, múltiplas abas, estilos, filtros e tipos numéricos;
 - não exige Microsoft Excel instalado durante a geração.
@@ -93,7 +96,7 @@ Decisão: estruturas tipadas internas e openpyxl; pandas somente se surgir neces
 
 ### Empacotamento
 
-**PyInstaller** é a opção inicial para gerar executável Windows. Deve ser avaliado após o motor estar testado, pois empacotar cedo dificulta diagnóstico.
+**PyInstaller** é a opção planejada. Não existe executável empacotado na baseline; a aplicação usa `.bat`, `.pyw` e ambiente virtual.
 
 ## Comparação das abordagens
 
@@ -133,15 +136,15 @@ Cada lançamento receberá evidências e alertas, não uma decisão opaca. Exemp
 
 Baixa confiança encaminha o registro à aba `Conferência`.
 
-## Dependências previstas
+## Dependências adotadas
 
-- biblioteca de extração PDF;
-- biblioteca de Excel;
-- biblioteca padrão para interface, datas, decimal, logs e arquivos;
-- framework de testes;
-- empacotador Windows somente na etapa de distribuição.
+- `pdfplumber >=0.11,<0.12`;
+- `openpyxl >=3.1,<4`;
+- `pytest >=8,<10` como dependência opcional de teste;
+- Tkinter e demais módulos da biblioteca padrão;
+- setuptools como backend de build.
 
-As versões exatas serão fixadas apenas na implementação, após teste de compatibilidade.
+PyInstaller, OCR, pandas e PyMuPDF não são dependências atuais.
 
 ## Custos
 
@@ -168,3 +171,12 @@ As versões exatas serão fixadas apenas na implementação, após teste de comp
 O foco é um usuário e um arquivo por execução. A arquitetura permite adicionar novos bancos por configuração/adaptador. Processamento em lote, OCR e paralelismo permanecem extensões futuras, sem necessidade de alterar o modelo central.
 
 O registro atual contém Inter, Caixa, Itaú, Santander e fallback genérico, nessa ordem de especificidade. Um novo banco deve implementar o contrato de layout e ser registrado sem alterar o caso de uso.
+
+## Lacunas técnicas atuais
+
+- parsing específico ainda concentrado no módulo legado;
+- ausência de fixtures PDF versionadas;
+- ausência de cobertura automatizada de UI e falhas de I/O;
+- ausência de métrica de cobertura;
+- ausência de executável distribuível;
+- detecção universal de campos extras ainda não comprovada.

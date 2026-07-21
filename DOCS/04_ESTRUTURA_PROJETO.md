@@ -1,10 +1,13 @@
 # 04 — Estrutura do Projeto
 
-Estrutura implementada após a refatoração SOLID/Clean Architecture:
+> **Baseline:** 21/07/2026 | O mapa abaixo descreve arquivos versionados relevantes e omite `.venv`, caches e artefatos locais.
+
+Estrutura implementada durante a refatoração incremental para SOLID/Clean Architecture. A organização física existe, mas a migração dos algoritmos legados ainda é parcial:
 
 ```text
 extrato-parser/
 ├── DOCS/
+│   ├── 00_ESTADO_ATUAL.md
 │   ├── 01_VISAO_DO_PROJETO.md
 │   ├── 02_ANALISE_TECNICA.md
 │   ├── 03_ARQUITETURA_SISTEMA.md
@@ -13,6 +16,9 @@ extrato-parser/
 │   ├── 06_ROADMAP_IMPLEMENTACAO.md
 │   ├── 07_PLANO_TESTES.md
 │   ├── 08_DECISOES_ARQUITETURA.md
+│   ├── 09_GUIA_NOVO_LAYOUT.md
+│   ├── 10_OPERACAO_E_DIAGNOSTICO.md
+│   ├── 11_CHANGELOG.md
 │   └── MASTER_PROJECT_PROTOCOL.md
 ├── src/extrato_parser/
 │   ├── application/
@@ -50,6 +56,12 @@ extrato-parser/
 │   ├── parser.py
 │   └── service.py
 ├── tests/
+│   ├── test_parser.py
+│   ├── test_itau_parser.py
+│   ├── test_inter_parser.py
+│   ├── test_caixa_parser.py
+│   ├── test_exporter.py
+│   └── test_normalization.py
 ├── ABRIR_EXTRATO_PARSER.bat
 ├── run_app.pyw
 ├── pyproject.toml
@@ -69,6 +81,16 @@ extrato-parser/
 - `tests`: regressões sintéticas e testes de exportação.
 - `DOCS`: fonte oficial de arquitetura, decisões, modelo, roadmap e testes.
 
+## Fachadas e código de transição
+
+- `models.py` reexporta entidades do domínio;
+- `extraction.py` mantém funções compatíveis de extração;
+- `parser.py` ainda contém os algoritmos concretos dos layouts;
+- `exporter.py` contém a geração concreta do workbook;
+- `service.py` é o composition root usado pela interface.
+
+Esses arquivos não devem ser removidos antes da migração dos algoritmos e da confirmação de todos os testes de regressão.
+
 ## Convenções obrigatórias
 
 - uma classe pública por arquivo;
@@ -78,3 +100,6 @@ extrato-parser/
 - adaptadores são registrados explicitamente;
 - arquivos bancários reais não entram no repositório sem anonimização;
 - toda correção de layout inclui teste de regressão.
+- o fallback genérico permanece por último no registro;
+- um layout não importa Tkinter ou openpyxl;
+- documentos de status usam `00_ESTADO_ATUAL.md` como referência temporal.
